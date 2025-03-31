@@ -51,7 +51,7 @@ local function highlight_motion(cmd)
                 or (iscap and not lastwascap)) then           -- capital letter
             if seen[char] == count then
                 api.nvim_buf_set_extmark(0, namespace, cursor[1] - 1, i - 1, {
-                    hl_group = config.highlights[(i % #config.highlights) + 1],
+                    hl_group = config.highlights[(index % #config.highlights) + 1],
                     end_col = i,
                     end_line = cursor[1] - 1,
                 })
