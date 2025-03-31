@@ -48,15 +48,14 @@ local function highlight_motion(cmd)
 
         if (i - start ~= 0)                                   -- is not directly adjacent
             and (not isalpha or (isalpha and not lastwasword) -- not a letter or first letter
-                or (iscap and not lastwascap)) then           -- capital letter
-            if seen[char] == count then
-                api.nvim_buf_set_extmark(0, namespace, cursor[1] - 1, i - 1, {
-                    hl_group = config.highlights[(index % #config.highlights) + 1],
-                    end_col = i,
-                    end_line = cursor[1] - 1,
-                })
-                index = index + 1
-            end
+                or (iscap and not lastwascap))                -- capital letter
+            and seen[char] == count then
+            api.nvim_buf_set_extmark(0, namespace, cursor[1] - 1, i - 1, {
+                hl_group = config.highlights[(index % #config.highlights) + 1],
+                end_col = i,
+                end_line = cursor[1] - 1,
+            })
+            index = index + 1
         end
 
         lastwasword = isalpha
@@ -78,8 +77,15 @@ local highlighted_find = function(cmd)
     else
         -- WARN: here be dragons
         local op = vim.v.operator
+
         -- ensure normal mode
-        api.nvim_input("<esc>")
+        api.nvim_feedkeys("\x1b", "n")
+
+        -- avoid incorrect cursor position
+        if op == "c" then
+            api.nvim_feedkeys("l", "n")
+        end
+
         -- give it time to highlight
         vim.defer_fn(function()
             -- TODO: do this properly
@@ -114,7 +120,7 @@ M.setup = function(opts)
     config = vim.tbl_extend("force", config, opts)
     if config.create_mappings then
         for _, cmd in ipairs { "f", "F", "t", "T" } do
-            vim.keymap.set({"x", "n", "o"}, cmd, function() return highlighted_find(cmd) end)
+            vim.keymap.set({ "x", "n", "o" }, cmd, function() return highlighted_find(cmd) end)
         end
     end
 end
