@@ -21,7 +21,7 @@ local config = {
 
 local namespace = api.nvim_create_namespace("nvim-blinkenlights")
 
-local function highlight_motion(cmd)
+local function highlight_motion(cmd, count)
     local goes_backward = cmd == "F" or cmd == "T"
     local cursor = api.nvim_win_get_cursor(0)
     local line = api.nvim_buf_get_lines(0, cursor[1] - 1, cursor[1], false)[1]
@@ -31,7 +31,6 @@ local function highlight_motion(cmd)
     local lastwascap = false
 
     local seen = {}
-    local count = vim.v.count1
     --[[
     Highlight the following:
         - non alphanumeric characters
@@ -64,11 +63,12 @@ local function highlight_motion(cmd)
 end
 
 local highlighted_find = function(cmd)
-    highlight_motion(cmd)
+    local count = vim.v.count1
+    highlight_motion(cmd, count)
 
     -- we're in some "normal-ish" mode, no weird hacks
     if vim.api.nvim_get_mode().mode ~= "no" then
-        api.nvim_feedkeys(vim.v.count1 .. cmd, "n")
+        api.nvim_feedkeys(count .. cmd, "n")
         -- as soon as the key is typed, we're done
         vim.on_key(function(key, typed)
             api.nvim_buf_clear_namespace(0, namespace, 0, -1)
@@ -101,7 +101,7 @@ local highlighted_find = function(cmd)
             -- make sure that custom operators work
             api.nvim_feedkeys(op, "")
             -- so feed the motion separately
-            api.nvim_feedkeys(vim.v.count1 .. cmd, "n")
+            api.nvim_feedkeys(count .. cmd, "n")
         end, 10)
     end
 
