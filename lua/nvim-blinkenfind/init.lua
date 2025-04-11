@@ -81,11 +81,6 @@ local highlighted_find = function(cmd)
         -- ensure normal mode
         api.nvim_feedkeys("\x1b", "n")
 
-        -- avoid incorrect cursor position
-        if op == "c" then
-            api.nvim_feedkeys("l", "n")
-        end
-
         -- give it time to highlight
         vim.defer_fn(function()
             -- TODO: do this properly
@@ -120,7 +115,8 @@ M.setup = function(opts)
     config = vim.tbl_extend("force", config, opts)
     if config.create_mappings then
         for _, cmd in ipairs { "f", "F", "t", "T" } do
-            vim.keymap.set({ "x", "n", "o" }, cmd, function() return highlighted_find(cmd) end)
+            vim.keymap.set({ "o" }, cmd, function() highlighted_find(cmd) end, { expr = true })
+            vim.keymap.set({ "x", "n" }, cmd, function() highlighted_find(cmd) end)
         end
     end
 end
