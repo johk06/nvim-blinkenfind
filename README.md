@@ -33,6 +33,10 @@ The following are the default options
         "BlinkenFind8",
         "BlinkenFind9",
     },
+    -- also highlight targets not at word boundaries etc
+    highlight_non_important = true,
+    -- suffix to use for those highlight groups
+    non_important_suffix = "Secondary",
 
     -- map f, F, t and T
     create_mappings = true,
