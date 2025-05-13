@@ -1,6 +1,8 @@
 # nvim-blinkenfind
 
-Nice colors to help you see what to `f`, `t`, `F` or `T`.
+Navigate faster with `f`, `F`, `t` and `T`.
+- Highlight useful targets
+- Allow increasing/decreasing v:count using `<C-a>` and `<C-x>` while finding.
 
 ### Installation
 
@@ -40,12 +42,6 @@ The following are the default options
 }
 ```
 
-#### Using another set of mappings
-```lua
-local blinkenfind = require("nvim-blinkenfind")
-blinkenfind.setup {
-    create_mappings = false
-}
+### Usage
 
-vim.keymap.set("<leader>f", function() blinkenfind.highlighted_find("f") end)
-```
+Just use the mapped commands normally.

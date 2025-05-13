@@ -21,34 +21,50 @@ local config = {
 
 local namespace = api.nvim_create_namespace("nvim-blinkenlights")
 
+local is_ascii_letter = function(c)
+    local b = string.byte(c)
+    return (b >= 0x41 and b <= 0x5a) or (b >= 0x61 and b <= 0x7a)
+end
+
+local is_ascii_upper = function(c)
+    local b = string.byte(c)
+    return (b >= 0x41 and b <= 0x5a)
+end
+
 local function highlight_motion(cmd, count)
     local goes_backward = cmd == "F" or cmd == "T"
     local cursor = api.nvim_win_get_cursor(0)
     local line = api.nvim_buf_get_lines(0, cursor[1] - 1, cursor[1], false)[1]
 
-    local index = 0
-    local lastwasword = false
-    local lastwascap = false
 
     local seen = {}
     --[[
     Highlight the following:
         - non alphanumeric characters
-        - first capital character in a sequence
-        - first character of word
-        - only if it's not the first, which would be easily reachable by hl
+        - first capital letter in a sequence
+        - word boundaries
     ]]
     local start = cursor[2] + (goes_backward and 0 or 2)
-    for i = cursor[2] + (goes_backward and 0 or 2), (goes_backward and 1 or #line), (goes_backward and -1 or 1) do
+    local index = 0
+    for i = start, (goes_backward and 1 or #line), (goes_backward and -1 or 1) do
         local char = line:sub(i, i)
-        seen[char] = (seen[char] or 0) + 1
-        local isalpha = char:lower() ~= char:upper()
-        local iscap = isalpha and (char:upper() == char)
+        local next = line:sub(i + 1, i + 1)
+        local prev = line:sub(i - 1, i - 1)
 
-        if (i - start ~= 0)                                   -- is not directly adjacent
-            and (not isalpha or (isalpha and not lastwasword) -- not a letter or first letter
-                or (iscap and not lastwascap))                -- capital letter
-            and seen[char] == count then
+        next = (not next or next == "") and " " or next
+        prev = (not prev or prev == "") and " " or prev
+
+        local is_ascii = is_ascii_letter(char)
+
+        seen[char] = (seen[char] or 0) + 1
+
+        if i ~= start
+            and seen[char] == count
+            and (not is_ascii or (
+                (is_ascii_upper(char) and not (is_ascii_upper(next) and is_ascii_upper(prev))) or
+                (is_ascii and not (is_ascii_letter(next) and is_ascii_letter(prev)))
+            ))
+        then
             api.nvim_buf_set_extmark(0, namespace, cursor[1] - 1, i - 1, {
                 hl_group = config.highlights[(index % #config.highlights) + 1],
                 end_col = i,
@@ -56,49 +72,26 @@ local function highlight_motion(cmd, count)
             })
             index = index + 1
         end
-
-        lastwasword = isalpha
-        lastwascap = iscap
     end
+end
+
+local CTRL_A = vim.keycode "<C-a>"
+local CTRL_X = vim.keycode "<C-x>"
+
+local modify_find = function(cmd, count)
+    local keys
+    if api.nvim_get_mode().mode == "no" then
+        keys = ("\x1b%s%d%s"):format(vim.v.operator, count, cmd)
+    else
+        keys = ("\x1b%d%s"):format(count, cmd)
+    end
+    api.nvim_feedkeys(keys, "")
 end
 
 local highlighted_find = function(cmd)
     local count = vim.v.count1
     highlight_motion(cmd, count)
-
-    -- we're in some "normal-ish" mode, no weird hacks
-    if vim.api.nvim_get_mode().mode ~= "no" then
-        api.nvim_feedkeys(count .. cmd, "n")
-        -- as soon as the key is typed, we're done
-        vim.on_key(function(key, typed)
-            api.nvim_buf_clear_namespace(0, namespace, 0, -1)
-            vim.on_key(nil, namespace)
-        end, namespace)
-    else
-        -- WARN: here be dragons
-        local op = vim.v.operator
-
-        -- ensure normal mode
-        api.nvim_feedkeys("\x1b", "n")
-
-        -- give it time to highlight
-        vim.defer_fn(function()
-            -- TODO: do this properly
-            api.nvim_create_autocmd("ModeChanged", {
-                callback = function()
-                    if vim.v.event.old_mode == "no" then
-                        api.nvim_buf_clear_namespace(0, namespace, 0, -1)
-                        return true
-                    end
-                end
-            })
-
-            -- make sure that custom operators work
-            api.nvim_feedkeys(op, "")
-            -- so feed the motion separately
-            api.nvim_feedkeys(count .. cmd, "n")
-        end, 10)
-    end
+    api.nvim__redraw { win = 0, range = { 0, -1 } }
 
     if config.treesitter_repeat then
         -- make ; and , work with this
@@ -107,6 +100,24 @@ local highlighted_find = function(cmd)
             opts = { forward = cmd == "f" or cmd == "t" }
         }
     end
+
+    local had_first = false
+    vim.on_key(function(key)
+        if not had_first then
+            had_first = true
+            return
+        end
+
+        api.nvim_buf_clear_namespace(0, namespace, 0, -1)
+        vim.on_key(nil, namespace)
+
+        if key == CTRL_A or key == CTRL_X then
+            modify_find(cmd, math.max(1, count + (key == CTRL_A and 1 or -1)))
+            return ""
+        end
+    end, namespace)
+
+    return cmd
 end
 
 M.highlighted_find = highlighted_find
@@ -115,8 +126,9 @@ M.setup = function(opts)
     config = vim.tbl_extend("force", config, opts)
     if config.create_mappings then
         for _, cmd in ipairs { "f", "F", "t", "T" } do
-            vim.keymap.set({ "o" }, cmd, function() highlighted_find(cmd) end, { expr = true })
-            vim.keymap.set({ "x", "n" }, cmd, function() highlighted_find(cmd) end)
+            vim.keymap.set({ "x", "n", "o", "v" }, cmd, function()
+                return highlighted_find(cmd)
+            end, { expr = true })
         end
     end
 end
