@@ -61,24 +61,22 @@ local function highlight_motion(cmd, count)
         seen[char] = (seen[char] or 0) + 1
 
         if i ~= start and seen[char] == count then
+            local hl_group
             if not is_ascii or (
                     (is_ascii_upper(char) and not (is_ascii_upper(next) and is_ascii_upper(prev))) or
                     (is_ascii and not (is_ascii_letter(next) and is_ascii_letter(prev)))
                 ) then
-                api.nvim_buf_set_extmark(0, namespace, cursor[1] - 1, i - 1, {
-                    hl_group = config.highlights[(index % #config.highlights) + 1],
-                    end_col = i,
-                    end_line = cursor[1] - 1,
-                })
-                index = index + 1
+                hl_group = config.highlights[(index % #config.highlights) + 1]
             elseif config.highlight_non_important then
-                api.nvim_buf_set_extmark(0, namespace, cursor[1] - 1, i - 1, {
-                    hl_group = config.highlights[(index % #config.highlights) + 1] .. config.non_important_suffix,
-                    end_col = i,
-                    end_line = cursor[1] - 1,
-                })
-                index = index + 1
+                hl_group = config.highlights[(index % #config.highlights) + 1] .. config.non_important_suffix
             end
+
+            api.nvim_buf_set_extmark(0, namespace, cursor[1] - 1, i - 1, {
+                hl_group = hl_group,
+                end_col = i,
+                end_line = cursor[1] - 1,
+            })
+            index = index + 1
         end
     end
 end
