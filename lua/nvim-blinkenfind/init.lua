@@ -21,7 +21,7 @@ local config = {
 }
 
 
-local namespace = api.nvim_create_namespace("nvim-blinkenlights")
+local namespace = api.nvim_create_namespace("nvim-blinkenfind")
 
 local is_ascii_letter = function(c)
     local b = string.byte(c)
@@ -83,6 +83,8 @@ end
 
 local CTRL_A = vim.keycode "<C-a>"
 local CTRL_X = vim.keycode "<C-x>"
+local CTRL_T = vim.keycode "<C-t>"
+local CTRL_D = vim.keycode "<C-d>"
 
 local modify_find = function(cmd, count)
     local keys
@@ -120,6 +122,13 @@ local highlighted_find = function(cmd)
         if key == CTRL_A or key == CTRL_X then
             modify_find(cmd, math.max(1, count + (key == CTRL_A and 1 or -1)))
             return ""
+        elseif key == CTRL_T then
+            modify_find(cmd == "f" and "t" or (cmd == "F" and "T" or (cmd == "T" and "F" or "f")), count)
+            return ""
+        elseif key == CTRL_D then
+            local new_cmd = cmd:lower() == cmd and cmd:upper() or cmd:lower()
+            modify_find(new_cmd, count)
+            return ""
         end
     end, namespace)
 
@@ -132,7 +141,7 @@ M.setup = function(opts)
     config = vim.tbl_extend("force", config, opts)
     if config.create_mappings then
         for _, cmd in ipairs { "f", "F", "t", "T" } do
-            vim.keymap.set({ "x", "n", "o", "v" }, cmd, function()
+            vim.keymap.set({ "x", "n", "o" }, cmd, function()
                 return highlighted_find(cmd)
             end, { expr = true })
         end

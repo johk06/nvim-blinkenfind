@@ -2,7 +2,9 @@
 
 Navigate faster with `f`, `F`, `t` and `T`.
 - Highlight useful targets
-- Allow increasing/decreasing v:count using `<C-a>` and `<C-x>` while finding.
+- Increase/Decrease v:count using `<C-a>` and `<C-x>`
+- Change type of find using `<C-t>`
+- Change find direction using `<C-d>`
 
 ### Installation
 
@@ -14,8 +16,7 @@ return {
 }
 ```
 
-### Configuration
-
+## Configuration
 The following are the default options
 ```lua
 {
@@ -46,6 +47,31 @@ The following are the default options
 }
 ```
 
-### Usage
+### Different mappings
+If you want to use different keymaps to trigger highlighted find, e.g. prefix them with `<leader>`:
+```lua
+--[[ Config: ]] {
+    create_mappings = false,
+    ...
+}
+for _, key in ipairs {"f", "F", "t", "T"} do
+    vim.keymap.set({"x", "n", "o"} "<leader>" .. key, function()
+        require("nvim-blinkenfind").highlighted_find(key)
+    end, { expr = true })
+end
+```
 
-Just use the mapped commands normally.
+
+## Usage
+
+- Just use the mapped commands normally.
+- Important positions will be highlighted:
+    - Start/End of words
+    - First capital letter after lowercase (camelCase)
+    - Punctuation
+    - Characters before/after punctuation
+- If you made an error or cannot reach your target yet:
+    - Press `<C-a>` to increase count
+    - Press `<C-x>` to decrease count
+    - Use `<C-t>` to cycle between `f` and `t`
+    - Use `<C-d>` to change the direction
