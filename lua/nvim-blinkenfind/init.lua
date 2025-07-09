@@ -103,7 +103,8 @@ local highlighted_find = function(cmd)
 
     if config.treesitter_repeat then
         -- make ; and , work with this
-        require("nvim-treesitter.textobjects.repeatable_move").last_move = {
+        require("nvim-treesitter-textobjects.repeatable_move").last_move = {
+            additional_args = {},
             func = cmd,
             opts = { forward = cmd == "f" or cmd == "t" }
         }
