@@ -36,8 +36,17 @@ The following are the default options
     },
     -- also highlight targets not at word boundaries etc
     highlight_non_important = true,
-    -- suffix to use for those highlight groups
-    non_important_suffix = "Secondary",
+    secondary_highlights = {
+        "BlinkenFind1Secondary",
+        "BlinkenFind2Secondary",
+        "BlinkenFind3Secondary",
+        "BlinkenFind4Secondary",
+        "BlinkenFind5Secondary",
+        "BlinkenFind6Secondary",
+        "BlinkenFind7Secondary",
+        "BlinkenFind8Secondary",
+        "BlinkenFind9Secondary",
+    },
 
     -- map f, F, t and T
     create_mappings = true,
