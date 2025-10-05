@@ -14,8 +14,19 @@ local config = {
         "BlinkenFind9",
     },
 
+    secondary_highlights = {
+        "BlinkenFind1Secondary",
+        "BlinkenFind2Secondary",
+        "BlinkenFind3Secondary",
+        "BlinkenFind4Secondary",
+        "BlinkenFind5Secondary",
+        "BlinkenFind6Secondary",
+        "BlinkenFind7Secondary",
+        "BlinkenFind8Secondary",
+        "BlinkenFind9Secondary",
+    },
+
     highlight_non_important = true,
-    non_important_suffix = "Secondary",
     create_mappings = true,
     treesitter_repeat = true,
 }
@@ -68,7 +79,7 @@ local function highlight_motion(cmd, count)
                 ) then
                 hl_group = config.highlights[(index % #config.highlights) + 1]
             elseif config.highlight_non_important then
-                hl_group = config.highlights[(index % #config.highlights) + 1] .. config.non_important_suffix
+                hl_group = config.secondary_highlights[(index % #config.highlights) + 1]
             end
 
             api.nvim_buf_set_extmark(0, namespace, cursor[1] - 1, i - 1, {

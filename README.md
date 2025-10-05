@@ -11,7 +11,7 @@ Navigate faster with `f`, `F`, `t` and `T`.
 With lazy
 ```lua
 return {
-    "dmxk062/nvim-blinkenfind",
+    "johk06/nvim-blinkenfind",
     opts = {}
 }
 ```
@@ -47,6 +47,24 @@ The following are the default options
 }
 ```
 
+### Highlight Groups
+Blinkenfind will use as many highlight groups as you give it.
+The default highlight groups (BlinkenFind1 .. BlinkenFind9) are *not* created by this plugin.
+Some sensible highlights might be:
+```lua
+{
+    highlights = {
+        "Substitute"
+    },
+    secondary_highlights = {
+        "Visual"
+    }
+}
+```
+
+If you want more colors, linking the BlinkenFind1 .. BlinkenFind9 groups to
+some others might be helpful.
+
 ### Different mappings
 If you want to use different keymaps to trigger highlighted find, e.g. prefix them with `<leader>`:
 ```lua
@@ -56,7 +74,7 @@ If you want to use different keymaps to trigger highlighted find, e.g. prefix th
 }
 for _, key in ipairs {"f", "F", "t", "T"} do
     vim.keymap.set({"x", "n", "o"} "<leader>" .. key, function()
-        require("nvim-blinkenfind").highlighted_find(key)
+        return require("nvim-blinkenfind").highlighted_find(key)
     end, { expr = true })
 end
 ```
