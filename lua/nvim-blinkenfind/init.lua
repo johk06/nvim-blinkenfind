@@ -96,15 +96,21 @@ local CTRL_A = vim.keycode "<C-a>"
 local CTRL_X = vim.keycode "<C-x>"
 local CTRL_T = vim.keycode "<C-t>"
 local CTRL_D = vim.keycode "<C-d>"
+local CTRL_O = vim.keycode "<C-o>"
 
 local modify_find = function(cmd, count)
     local keys
-    if api.nvim_get_mode().mode == "no" then
+    local flags = ""
+    local mode = api.nvim_get_mode().mode
+    if mode == "no" then
         keys = ("\x1b%s%d%s"):format(vim.v.operator, count, cmd)
+    elseif mode == "niI" then
+        keys = ("\x1b\x1b%s%d%s"):format(CTRL_O, count, cmd)
+        flags = "L"
     else
         keys = ("\x1b%d%s"):format(count, cmd)
     end
-    api.nvim_feedkeys(keys, "")
+    api.nvim_feedkeys(keys, flags)
 end
 
 local highlighted_find = function(cmd)
