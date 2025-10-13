@@ -34,61 +34,115 @@ local config = {
 
 local namespace = api.nvim_create_namespace("nvim-blinkenfind")
 
-local is_ascii_letter = function(c)
+---@param line string
+---@param backward boolean
+---@param cursor integer
+---@return ([integer, integer, string])[]
+local parse_line = function(line, backward, cursor)
+    local text, offset
+    if backward then
+        offset = 0
+        text = line:sub(1, cursor)
+    else
+        offset = #line:sub(1, cursor + 1)
+        text = line:sub(cursor + 2)
+    end
+    local positions = vim.str_utf_pos(text)
+    if backward then
+        local newchars = {}
+        for i = #positions, 1, -1 do
+            newchars[#newchars + 1] = positions[i]
+        end
+        positions = newchars
+    end
+
+    local characters = vim.tbl_map(function(b)
+        local stop = vim.str_utf_end(text, b)
+        local char = text:sub(b, b + stop)
+        return { b + offset, stop + b + offset, char }
+    end, positions)
+
+    return characters
+end
+
+local is_ascii_symbol = function(c)
+    if c == "" then return false end
     local b = string.byte(c)
-    return (b >= 0x41 and b <= 0x5a) or (b >= 0x61 and b <= 0x7a)
+    return
+        (b >= 0x21 and b <= 0x2F)    -- !"#$%&'()*+,-./
+        or (b >= 0x3A and b <= 0x40) -- :;<=>?@
+        or (b >= 0x5E and b <= 0x60) -- [\]^_`
+        or (b >= 0x7B and b <= 0x7E) -- {|}~
 end
 
 local is_ascii_upper = function(c)
+    if c == "" then return false end
     local b = string.byte(c)
     return (b >= 0x41 and b <= 0x5a)
+end
+
+local is_ascii_number = function(c)
+    if c == "" then return false end
+    local b = string.byte(c)
+    return (b >= 0x30 and b <= 0x39)
 end
 
 local function highlight_motion(cmd, count)
     local goes_backward = cmd == "F" or cmd == "T"
     local cursor = api.nvim_win_get_cursor(0)
     local line = api.nvim_buf_get_lines(0, cursor[1] - 1, cursor[1], false)[1]
+    local chars = parse_line(line, goes_backward, cursor[2])
 
-
-    local seen = {}
     --[[
     Highlight the following:
         - non alphanumeric characters
         - first capital letter in a sequence
         - word boundaries
     ]]
-    local start = cursor[2] + (goes_backward and 0 or 2)
-    local index = 0
-    for i = start, (goes_backward and 1 or #line), (goes_backward and -1 or 1) do
-        local char = line:sub(i, i)
-        local next = line:sub(i + 1, i + 1)
-        local prev = line:sub(i - 1, i - 1)
-
-        next = (not next or next == "") and " " or next
-        prev = (not prev or prev == "") and " " or prev
-
-        local is_ascii = is_ascii_letter(char)
-
+    local color_index = 1
+    local seen = {}
+    local first = true
+    for i, glyph in ipairs(chars) do
+        local start = glyph[1]
+        local stop = glyph[2]
+        local char = glyph[3]
         seen[char] = (seen[char] or 0) + 1
+        local prev = chars[i - 1] and chars[i - 1][3] or ""
+        local next = chars[i + 1] and chars[i + 1][3] or ""
 
-        if i ~= start and seen[char] == count then
+        local is_word_boundary =
+            (next == " " or prev == " ")
+            or (next == "" or prev == "")
+            or (is_ascii_symbol(next) or is_ascii_symbol(prev))
+        local is_camel_boundary = is_ascii_upper(char) and not (is_ascii_upper(next) and is_ascii_upper(prev))
+        local is_symbol = is_ascii_symbol(char)
+        local is_number_boundary = is_ascii_number(char) and not (is_ascii_number(next) and is_ascii_number(prev))
+
+        if first then
+            first = false
+        elseif seen[char] == count and char ~= " " then
             local hl_group
-            if not is_ascii or (
-                    (is_ascii_upper(char) and not (is_ascii_upper(next) and is_ascii_upper(prev))) or
-                    (is_ascii and not (is_ascii_letter(next) and is_ascii_letter(prev)))
-                ) then
-                hl_group = config.highlights[(index % #config.highlights) + 1]
+            if
+                is_symbol
+                or is_camel_boundary
+                or is_number_boundary
+                or is_word_boundary then
+                hl_group = config.highlights[(color_index % #config.highlights) + 1]
             elseif config.highlight_non_important then
-                hl_group = config.secondary_highlights[(index % #config.highlights) + 1]
+                hl_group = config.secondary_highlights[(color_index % #config.highlights) + 1]
             end
 
-            api.nvim_buf_set_extmark(0, namespace, cursor[1] - 1, i - 1, {
+            api.nvim_buf_set_extmark(0, namespace, cursor[1] - 1, start - 1, {
                 hl_group = hl_group,
-                end_col = i,
+                end_col = stop,
                 end_line = cursor[1] - 1,
             })
-            index = index + 1
+            color_index = color_index + 1
         end
+        --
+        -- local is_ascii = is_ascii_letter(char)
+        --
+        --
     end
 end
 
